@@ -1,0 +1,59 @@
+name: 'Post Issue Comment'
+description: 'Post a comment to the specified issue with consistent formatting'
+
+inputs:
+  number:
+    description: 'Issue number to post comment to'
+    required: true
+  title:
+    description: 'Comment title (heading)'
+    required: true
+  content:
+    description: 'Comment body content'
+    required: true
+  icon:
+    description: 'Icon for the comment (default: 📝)'
+    required: false
+    default: '📝'
+  footer:
+    description: 'Custom footer text'
+    required: false
+    default: '_Automatically posted by E2E test workflow_'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate timestamp
+      id: timestamp
+      shell: bash
+      run: echo "value=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+
+    - name: Post comment
+      uses: actions/github-script@v7
+      env:
+        COMMENT_TITLE: ${{ inputs.title }}
+        COMMENT_CONTENT: ${{ inputs.content }}
+        COMMENT_ICON: ${{ inputs.icon }}
+        COMMENT_FOOTER: ${{ inputs.footer }}
+        COMMENT_TIMESTAMP: ${{ steps.timestamp.outputs.value }}
+        ISSUE_NUMBER: ${{ inputs.number }}
+      with:
+        script: |
+          const title = process.env.COMMENT_TITLE;
+          const content = process.env.COMMENT_CONTENT;
+          const icon = process.env.COMMENT_ICON;
+          const footer = process.env.COMMENT_FOOTER;
+          const timestamp = process.env.COMMENT_TIMESTAMP;
+          const issueNumber = parseInt(process.env.ISSUE_NUMBER);
+
+          // Replace timestamp placeholder in content
+          const processedContent = content.replace(/\$\{\{\s*timestamp\s*\}\}/g, timestamp);
+
+          const message = `### ${icon} ${title}\n\n${processedContent}\n\n---\n${footer}`;
+
+          await github.rest.issues.createComment({
+            issue_number: issueNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: message
+          });

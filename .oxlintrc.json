@@ -1,0 +1,24 @@
+{
+  "$schema": "https://oxc.rs/schema.json",
+  "ignorePatterns": ["dist/**", "node_modules/**"],
+  "categories": {
+    "correctness": "warn"
+  },
+  "rules": {
+    "eqeqeq": ["error", "always"],
+    "no-unused-vars": "error",
+    "prefer-const": "error",
+    "func-style": ["error", "expression"],
+    "prefer-arrow-callback": "error",
+    "no-console": "warn",
+    "no-debugger": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.spec.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}

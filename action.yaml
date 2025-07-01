@@ -1,0 +1,46 @@
+name: 'Checkbox Workflow Action'
+description: 'Create checkbox-driven automated workflows in GitHub Actions. Interactive checkboxes in GitHub Issues and Pull Requests that trigger automated workflows.'
+author: 'wadackel'
+branding:
+  color: white
+  icon: check-square
+
+inputs:
+  id:
+    description: 'Unique identifier for the checkbox group'
+    required: true
+  number:
+    description: 'Issue or Pull Request number'
+    required: true
+  message:
+    description: 'Message template string to display in Issue/PR comments. Checkboxes are expanded with `{{body}}`.'
+  config:
+    description: 'JSON5 string for checkbox configuration'
+    required: false
+  force-checked:
+    description: 'JSON string array of checkbox keys to force as checked'
+    required: false
+  body:
+    description: 'If true, updates Issue/PR body instead of creating comment'
+    default: 'false'
+  token:
+    description: 'GitHub token for API access'
+    default: ${{ github.token }}
+
+outputs:
+  retrieved:
+    description: 'Whether checkbox state was successfully retrieved (`"true"` / `"false"`)'
+  changed:
+    description: 'Whether checkbox state changed from previous (`"true"` / `"false"`)'
+  state:
+    description: 'Current checkbox state (JSON object)'
+  changes:
+    description: 'Array of checkbox keys that changed (JSON array)'
+  all-checked:
+    description: 'Whether all checkboxes are checked (`"true"` / `"false"`)'
+  comment-id:
+    description: 'ID of created/updated comment'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

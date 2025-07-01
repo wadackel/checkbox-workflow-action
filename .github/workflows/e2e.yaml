@@ -1,0 +1,642 @@
+name: 'E2E Test Suite'
+
+concurrency:
+  group: e2e-checklist-${{ github.event.issue.number }}-${{ github.event_name }}-${{ github.event.action || 'none' }}
+  cancel-in-progress: false
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  # Execute only when issue with [E2E] prefix is created
+  setup-e2e-checklist:
+    if: github.event.action == 'opened' && startsWith(github.event.issue.title, '[E2E]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create e2e checklist
+        id: e2e-tasks
+        uses: ./
+        with:
+          id: e2e-checklist
+          number: ${{ github.event.issue.number }}
+          body: true # Make issue body a management target
+          message: |
+            ${{ github.event.issue.body && github.event.issue.body != '' && github.event.issue.body || 'E2E Test Suite' }}
+
+            ---
+
+            ### 🧪 E2E Test Checklist
+
+            {{body}}
+
+            <sub>Automated E2E test workflow is tracking this issue</sub>
+          config: |
+            [
+              {"issue-body-test": "Issue Body Management - Checkbox interaction triggers all E2E tests"},
+              {"basic-workflow": "Basic Workflow - Verify greet/silent tasks and auto-reset functionality"},
+              {"dynamic-workflow": "Dynamic Workflow - File selection, artifact creation, and cleanup"},
+              {"state-retrieval": "State Retrieval and Cross-Workflow Integration - Verify checkbox state sharing between workflows"}
+            ]
+
+  # Execute tasks when issue is edited (checkbox changes)
+  execute-e2e-tasks:
+    if: startsWith(github.event.issue.body, '<!-- checkbox-workflow-action:managed -->') && github.event.action == 'edited' && startsWith(github.event.issue.title, '[E2E]')
+    runs-on: ubuntu-latest
+    outputs:
+      should-run-e2e: ${{ steps.trigger-check.outputs.should-run-e2e }}
+      number: ${{ github.event.issue.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check task status
+        id: e2e-tasks
+        uses: ./
+        with:
+          id: e2e-checklist
+          number: ${{ github.event.issue.number }}
+          body: true # Read state from issue body
+
+      - name: Verify state retrieval
+        if: ${{ steps.e2e-tasks.outputs.retrieved == 'false' }}
+        run: |
+          echo "::warning::E2E checklist state not found in issue body"
+          exit 1
+
+      - name: Issue Body Management Test - Post Initial Message
+        if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'issue-body-test') && fromJSON(steps.e2e-tasks.outputs.state).issue-body-test }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ github.event.issue.number }}
+          title: 'E2E Tests Started'
+          icon: '🧪'
+          content: |
+            Issue Body Management checkbox checked - triggering all E2E tests automatically!
+
+            Running E2E test suite:
+            - ✅ Basic workflow test
+            - ✅ Dynamic file selection test
+            - ✅ State retrieval and cross-workflow integration test
+
+            [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Set E2E trigger flag
+        id: trigger-check
+        if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'issue-body-test') && fromJSON(steps.e2e-tasks.outputs.state).issue-body-test }}
+        run: echo "should-run-e2e=true" >> $GITHUB_OUTPUT
+
+      - name: Basic Workflow Test
+        if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'basic-workflow') && fromJSON(steps.e2e-tasks.outputs.state).basic-workflow }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ github.event.issue.number }}
+          title: 'Basic Workflow Test Completed'
+          icon: '✅'
+          content: |
+            Basic workflow functionality has been verified and confirmed working correctly.
+
+            **Verified:** Greet task comments, silent task execution, and checklist auto-reset.
+
+      - name: Dynamic Workflow Test
+        if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'dynamic-workflow') && fromJSON(steps.e2e-tasks.outputs.state).dynamic-workflow }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ github.event.issue.number }}
+          title: 'Dynamic Workflow Test Completed'
+          icon: '✅'
+          content: |
+            Dynamic workflow functionality has been verified and confirmed working correctly.
+
+            **Verified:** File list generation, interactive selection, and artifact creation.
+
+      - name: State Retrieval Test
+        if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'state-retrieval') && fromJSON(steps.e2e-tasks.outputs.state).state-retrieval }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ github.event.issue.number }}
+          title: 'State Retrieval and Cross-Workflow Integration Test Completed'
+          icon: '✅'
+          content: |
+            State retrieval functionality has been verified and confirmed working correctly.
+
+            **Verified:** Cross-workflow state sharing, checkbox state retrieval, and workflow coordination.
+
+      - name: Complete E2E Test Suite
+        if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ github.event.issue.number }}
+          title: 'E2E Test Suite Completed Successfully!'
+          icon: '🎉'
+          content: |
+            All E2E test phases have been completed and verified.
+
+            **📋 Test Suite:** ${{ github.event.issue.title }}
+            **📝 Completion Date:** {{ timestamp }}
+            **📋 Overall Status:** ✅ ALL TESTS PASSED
+
+            **📋 Completed Test Phases:**
+            - ✅ Issue Body Management Test
+            - ✅ Basic Workflow Test  
+            - ✅ Dynamic Workflow Test
+            - ✅ State Retrieval and Cross-Workflow Integration Test
+
+            **📝 Summary:** The Checkbox Workflow Action is functioning correctly across all test scenarios. This issue will now be automatically closed.
+
+      - name: Close completed E2E issue
+        if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({
+              issue_number: ${{ github.event.issue.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              state_reason: 'completed'
+            });
+
+  # Basic Workflow E2E Test (integrated)
+  basic-workflow-test:
+    needs: execute-e2e-tasks
+    if: |
+      always() && 
+      (
+        needs.execute-e2e-tasks.outputs.should-run-e2e == 'true' ||
+        (
+          github.event_name == 'issue_comment' && 
+          github.event.action == 'edited' && 
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:managed -->') &&
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:state:basic-tasks:')
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create basic checklist
+        if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
+        uses: ./
+        with:
+          id: basic-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          message: |
+            # 🧪 Basic Workflow Demo
+
+            Checkbox action demonstration:
+
+            {{body}}
+
+            ---
+            _E2E test: Basic workflow functionality_
+          config: |
+            [
+              {"greet": "Say Hello - Posts a greeting comment to the issue"},
+              {"silent": "Silent Task - Executes quietly (monitoring test)"}
+            ]
+
+      - name: Check tasks status
+        uses: ./
+        id: tasks
+        with:
+          id: basic-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+
+      - name: Greet Task
+        if: ${{ steps.tasks.outputs.retrieved == 'true' && steps.tasks.outputs.changed == 'true' && contains(fromJSON(steps.tasks.outputs.changes), 'greet') && fromJSON(steps.tasks.outputs.state).greet }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'Basic Workflow - Greet Task Executed'
+          icon: '🚀'
+          content: |
+            The **Greet** checkbox was checked! This demonstrates how checking a box can trigger visible actions.
+
+            **📋 Task Details:**
+            - ✅ Greet task executed successfully
+            - 📝 Timestamp: {{ timestamp }}
+            - 🔗 Workflow Run: [View workflow run details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Silent Task
+        if: ${{ steps.tasks.outputs.retrieved == 'true' && steps.tasks.outputs.changed == 'true' && contains(fromJSON(steps.tasks.outputs.changes), 'silent') && fromJSON(steps.tasks.outputs.state).silent }}
+        run: |
+          echo "🤫 Silent Task Triggered"
+          echo "This task executes quietly - only visible in workflow logs"
+          echo "✅ Silent task completed successfully"
+
+      # Clear checkboxes when all tasks are completed
+      - name: Clear completed checklist
+        if: ${{ steps.tasks.outputs.all-checked == 'true' }}
+        uses: ./
+        with:
+          id: basic-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          force-checked: '[]'
+          message: |
+            ### ✅ Basic Workflow Demo Completed!
+
+            All demo tasks have been completed and the checklist has been cleared.
+
+            **📋 What happened:**
+            - All checkboxes were checked
+            - Corresponding actions were triggered
+            - Checklist automatically reset for next demo
+
+            ---
+            _Automatically posted by E2E test workflow_
+
+  # Dynamic File Selection E2E Test (integrated)
+  dynamic-workflow-test:
+    needs: execute-e2e-tasks
+    if: |
+      always() && 
+      (
+        needs.execute-e2e-tasks.outputs.should-run-e2e == 'true' ||
+        (
+          github.event_name == 'issue_comment' && 
+          github.event.action == 'edited' && 
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:managed -->') &&
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:state:workflow-file-selector:')
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get workflow files
+        id: workflow-files
+        if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
+        run: |
+          # Get all workflow files
+          echo "Getting workflow files from .github/workflows"
+
+          # Find all .yaml and .yml files in workflows directory
+          WORKFLOW_FILES=$(find .github/workflows -type f \( -name "*.yaml" -o -name "*.yml" \) | sort)
+
+          if [ -z "$WORKFLOW_FILES" ]; then
+            echo "No workflow files found"
+            echo "has-files=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Workflow files:"
+          echo "$WORKFLOW_FILES"
+          echo "has-files=true" >> $GITHUB_OUTPUT
+
+          # Generate configuration in JSON array format
+          CONFIG_JSON="["
+          FIRST=true
+
+          # Add each file as checkbox item
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then
+              if [ "$FIRST" = true ]; then
+                FIRST=false
+              else
+                CONFIG_JSON="$CONFIG_JSON,"
+              fi
+              # Escape file path and add as JSON item
+              ESCAPED_FILE=$(echo "$file" | sed 's/"/\\"/g')
+              CONFIG_JSON="$CONFIG_JSON{\"$ESCAPED_FILE\": \"📄 $ESCAPED_FILE\"}"
+            fi
+          done <<< "$WORKFLOW_FILES"
+
+          # Add download option
+          if [ "$FIRST" = false ]; then
+            CONFIG_JSON="$CONFIG_JSON,"
+          fi
+          CONFIG_JSON="$CONFIG_JSON{\"download\": \"📦 Download selected files as artifact\"}"
+          CONFIG_JSON="$CONFIG_JSON]"
+
+          echo "Generated config:"
+          echo "$CONFIG_JSON"
+
+          # Use delimiter for multi-line support
+          echo "config<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONFIG_JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create/Update file checklist
+        if: steps.workflow-files.outputs.has-files == 'true' && needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
+        uses: ./
+        with:
+          id: workflow-file-selector
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          message: |
+            # 📁 Dynamic File Selection
+
+            **Available Workflow Files**
+
+            Select the workflow files you want to include in the artifact, then check the "Download" option to create a downloadable package.
+
+            {{body}}
+
+            ---
+            _Select workflow files to download_
+          config: ${{ steps.workflow-files.outputs.config }}
+
+      - name: Check file selection status
+        id: file-status
+        uses: ./
+        with:
+          id: workflow-file-selector
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+
+      - name: Debug - Show current state
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' }}
+        run: |
+          echo "State changed: ${{ steps.file-status.outputs.changed }}"
+          echo "Current state: ${{ steps.file-status.outputs.state }}"
+          echo "Download checked: ${{ fromJSON(steps.file-status.outputs.state).download }}"
+
+      - name: Create artifact from selected files
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download }}
+        id: create-artifact
+        run: |
+          echo "📦 Creating artifact from selected files..."
+
+          # Identify selected files
+          STATE='${{ steps.file-status.outputs.state }}'
+          echo "Processing state: $STATE"
+
+          # Create temporary directory
+          mkdir -p selected-files
+
+          # Extract true items (files) from state except download
+          SELECTED_FILES=$(echo "$STATE" | jq -r 'to_entries[] | select(.value == true and .key != "download") | .key')
+
+          if [ -z "$SELECTED_FILES" ]; then
+            echo "No files selected"
+            echo "has-selected-files=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Selected files:"
+          echo "$SELECTED_FILES"
+          echo "has-selected-files=true" >> $GITHUB_OUTPUT
+
+          # Copy selected files (preserve directory structure)
+          FILE_COUNT=0
+          while IFS= read -r file; do
+            if [ -n "$file" ] && [ -f "$file" ]; then
+              echo "Copying $file..."
+              # Copy while preserving directory structure
+              mkdir -p "selected-files/$(dirname "$file")"
+              cp "$file" "selected-files/$file"
+              FILE_COUNT=$((FILE_COUNT + 1))
+            fi
+          done <<< "$SELECTED_FILES"
+
+          echo "Copied $FILE_COUNT files"
+          echo "file-count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          # Use current time as timestamp
+          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}-workflows-${{ steps.create-artifact.outputs.timestamp }}
+          path: selected-files/
+          include-hidden-files: true
+          retention-days: 7
+
+      - name: Post completion comment - No files selected
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'false' }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'No Files Selected'
+          icon: '⚠️'
+          content: |
+            Please select at least one file before clicking the "Download" option.
+
+      - name: Post completion comment - Artifact created
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'Artifact Created Successfully!'
+          icon: '📦'
+          content: |
+            Your selected files have been packaged and are ready for download.
+
+            **📋 Artifact Details:**
+            - **📝 Name:** `issue-${{ needs.execute-e2e-tasks.outputs.number }}-workflows-${{ steps.create-artifact.outputs.timestamp }}`
+            - **📝 Files:** ${{ steps.create-artifact.outputs.file-count }} file(s)
+            - **📝 Retention:** 7 days
+
+            **🔗 Download:** [View workflow run details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            > Navigate to the workflow run and scroll down to the "Artifacts" section to download your files.
+
+      - name: Clear checkboxes after processing
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
+        uses: ./
+        with:
+          id: workflow-file-selector
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          force-checked: '[]'
+
+      - name: Track file selection changes (no download)
+        if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && !fromJSON(steps.file-status.outputs.state).download }}
+        run: |
+          echo "📊 File selection updated (download not triggered)"
+          STATE='${{ steps.file-status.outputs.state }}'
+
+          # Count the number of selected files
+          SELECTED_COUNT=$(echo "$STATE" | jq -r 'to_entries[] | select(.value == true and .key != "download") | .key' | wc -l)
+          echo "Currently selected files: $SELECTED_COUNT"
+
+          echo "ℹ️  Check the 'Download' option to create an artifact with the selected files."
+
+  # State Retrieval E2E Test (integrated)
+  state-retrieval-test:
+    needs: execute-e2e-tasks
+    if: |
+      always() && 
+      (
+        needs.execute-e2e-tasks.outputs.should-run-e2e == 'true' ||
+        (
+          github.event_name == 'issue_comment' && 
+          github.event.action == 'edited' && 
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:managed -->') &&
+          contains(github.event.comment.body, '<!-- checkbox-workflow-action:state:state-demo-tasks:')
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create demo checklist
+        if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
+        uses: ./
+        with:
+          id: state-demo-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          message: |
+            # 🔍 State Retrieval Demo
+
+            Demo checklist for testing cross-workflow state reading:
+
+            {{body}}
+
+            ---
+            _E2E test: State retrieval functionality_
+          config: |
+            [
+              {"demo-task-a": "Demo Task A - First test item"},
+              {"demo-task-b": "Demo Task B - Second test item"}
+            ]
+
+      - name: Retrieve checkbox state (Detection Mode)
+        id: state-check
+        uses: ./
+        with:
+          id: state-demo-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+
+      - name: Display state retrieval results
+        if: ${{ steps.state-check.outputs.retrieved == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checkedState = JSON.parse('${{ steps.state-check.outputs.state }}');
+            const allChecked = '${{ steps.state-check.outputs.all-checked }}' === 'true';
+            const hasChanges = '${{ steps.state-check.outputs.changed }}' === 'true';
+
+            const message = `### 🔍 State Retrieval Test Results
+
+            **Detection Mode Executed Successfully!**
+
+            **Retrieved Checkbox States:**
+            - Demo Task A: ${checkedState['demo-task-a'] ? '✅ Checked' : '❌ Unchecked'}
+            - Demo Task B: ${checkedState['demo-task-b'] ? '✅ Checked' : '❌ Unchecked'}
+            - All Tasks Complete: ${allChecked ? '✅ Yes' : '❌ No'}
+
+            **Technical Details:**
+            - State Changes Detected: ${hasChanges ? 'Yes' : 'No'}
+            - Raw State Data: \`${JSON.stringify(checkedState)}\`
+            - Timestamp: ${new Date().toISOString()}
+
+            ---
+            _Automatically posted by E2E test workflow_`;
+
+            await github.rest.issues.createComment({
+              issue_number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+
+      - name: Demo Task A State Detection
+        if: ${{ steps.state-check.outputs.retrieved == 'true' && steps.state-check.outputs.changed == 'true' && contains(fromJSON(steps.state-check.outputs.changes), 'demo-task-a') && fromJSON(steps.state-check.outputs.state).demo-task-a }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'State Retrieval Demo - Task A Detected'
+          icon: '✅'
+          content: |
+            The **Demo Task A** checkbox was checked! This demonstrates cross-workflow state reading.
+
+            **📋 Detection Details:**
+            - ✅ Task A state change detected via Detection Mode
+            - 🔍 Retrieved state: checked = true
+            - 📝 Timestamp: {{ timestamp }}
+            - 🔗 Workflow Run: [View details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Demo Task B State Detection
+        if: ${{ steps.state-check.outputs.retrieved == 'true' && steps.state-check.outputs.changed == 'true' && contains(fromJSON(steps.state-check.outputs.changes), 'demo-task-b') && fromJSON(steps.state-check.outputs.state).demo-task-b }}
+        run: |
+          echo "🔍 Demo Task B State Change Detected"
+          echo "This demonstrates state retrieval and conditional execution"
+          echo "Task B is now checked: true"
+
+      - name: All Tasks Completion Detection
+        if: ${{ steps.state-check.outputs.all-checked == 'true' }}
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'State Retrieval Demo - All Tasks Complete'
+          icon: '🎯'
+          content: |
+            Both demo tasks are now checked! This demonstrates the `all-checked` output functionality.
+
+            **Demonstrated Features:**
+            - ✅ Detection Mode state retrieval
+            - ✅ Individual checkbox state checking
+            - ✅ All-complete status detection
+            - ✅ Cross-workflow state reading
+
+      - name: Check final state
+        id: final-state
+        uses: ./
+        with:
+          id: state-demo-tasks
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+
+  # Post workflow completion summary
+  post-completion-summary:
+    needs: [execute-e2e-tasks, basic-workflow-test, dynamic-workflow-test, state-retrieval-test]
+    if: always() && needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Handle workflow failures
+        id: handle-workflow-failures
+        if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const basicStatus = '${{ needs.basic-workflow-test.result }}';
+            const dynamicStatus = '${{ needs.dynamic-workflow-test.result }}';
+            const stateRetrievalStatus = '${{ needs.state-retrieval-test.result }}';
+
+            let failedWorkflows = [];
+            if (basicStatus === 'failure') failedWorkflows.push('Basic Workflow');
+            if (dynamicStatus === 'failure') failedWorkflows.push('Dynamic Workflow');
+            if (stateRetrievalStatus === 'failure') failedWorkflows.push('State Retrieval Workflow');
+
+            const failedWorkflowsList = failedWorkflows.map(wf => `- ❌ ${wf}`).join('\n');
+            const basicStatusIcon = basicStatus === 'success' ? '✅ SUCCESS' : '❌ FAILED';
+            const dynamicStatusIcon = dynamicStatus === 'success' ? '✅ SUCCESS' : '❌ FAILED';
+            const stateRetrievalStatusIcon = stateRetrievalStatus === 'success' ? '✅ SUCCESS' : '❌ FAILED';
+
+            const content = `Some E2E workflows failed to complete successfully:
+
+            **Failed Workflows:**
+            ${failedWorkflowsList}
+
+            **Basic Workflow Status:** ${basicStatusIcon}
+            **Dynamic Workflow Status:** ${dynamicStatusIcon}
+            **State Retrieval Workflow Status:** ${stateRetrievalStatusIcon}
+
+            Please review the workflow logs and resolve any issues before proceeding with E2E testing.
+
+            [View workflow run details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+
+            core.setOutput('content', content);
+
+      - name: Post workflow failure notification
+        if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
+        uses: ./.github/actions/post-comment
+        with:
+          number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
+          title: 'E2E Workflow Failures Detected'
+          icon: '❌'
+          content: ${{ steps.handle-workflow-failures.outputs.content }}
+          footer: '_Automatically posted by checkbox-driven E2E test workflow_'
