@@ -4,7 +4,7 @@
 
 <!-- gha-description-start -->
 
-Create checkbox-driven automated workflows in GitHub Actions. Interactive checkboxes in GitHub Issues and Pull Requests that trigger automated workflows.
+Create checkbox-driven automated workflows in GitHub Actions.
 
 <!-- gha-description-end -->
 

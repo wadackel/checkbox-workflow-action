@@ -1,5 +1,5 @@
 name: 'Checkbox Workflow Action'
-description: 'Create checkbox-driven automated workflows in GitHub Actions. Interactive checkboxes in GitHub Issues and Pull Requests that trigger automated workflows.'
+description: 'Create checkbox-driven automated workflows in GitHub Actions.'
 author: 'wadackel'
 branding:
   color: white
