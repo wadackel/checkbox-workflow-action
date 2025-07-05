@@ -88,8 +88,8 @@ importers:
         specifier: 2.8.0
         version: 2.8.0
       zod:
-        specifier: 3.25.67
-        version: 3.25.67
+        specifier: 3.25.71
+        version: 3.25.71
 
 packages:
 
@@ -2419,8 +2419,8 @@ packages:
   zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
 
-  zod@3.25.67:
-    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
+  zod@3.25.71:
+    resolution: {integrity: sha512-BsBc/NPk7h8WsUWYWYL+BajcJPY8YhjelaWu2NMLuzgraKAz4Lb4/6K11g9jpuDetjMiqhZ6YaexFLOC0Ogi3Q==}
 
 snapshots:
 
@@ -3492,7 +3492,7 @@ snapshots:
       debug: 4.4.1
       meow: 11.0.0
       yaml: 2.8.0
-      zod: 3.25.67
+      zod: 3.25.71
       zod-error: 1.5.0
     transitivePeerDependencies:
       - supports-color
@@ -4612,6 +4612,6 @@ snapshots:
 
   zod-error@1.5.0:
     dependencies:
-      zod: 3.25.67
+      zod: 3.25.71
 
-  zod@3.25.67: {}
+  zod@3.25.71: {}
