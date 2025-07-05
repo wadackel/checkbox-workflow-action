@@ -33261,26 +33261,24 @@ const createCommentManager = (token) => {
     const owner = github.context.repo.owner;
     const repo = github.context.repo.repo;
     /**
-     * Get existing comments for Issue/PR
-     */
-    const getIssueComments = async (issueNumber) => {
-        const { data } = await octokit.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number: issueNumber,
-        });
-        return data;
-    };
-    /**
      * Search for comment with specified ID
      */
     const findCommentById = async (issueNumber, actionId) => {
-        const comments = await getIssueComments(issueNumber);
-        // Search for comment with matching ID from metadata
-        const targetComment = comments.find((comment) => {
-            return htmlCommentUtils.extractStateMetadata(comment.body, actionId) !== null;
-        });
-        return targetComment ?? null;
+        // Use iterator for early termination when comment is found
+        for await (const response of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+            owner,
+            repo,
+            issue_number: issueNumber,
+            per_page: 100,
+        })) {
+            const targetComment = response.data.find((comment) => {
+                return (comment.body && htmlCommentUtils.extractStateMetadata(comment.body, actionId) !== null);
+            });
+            if (targetComment) {
+                return targetComment;
+            }
+        }
+        return null;
     };
     /**
      * Create comment on Issue/PR
@@ -33365,7 +33363,6 @@ const createCommentManager = (token) => {
         return { issue: updatedIssue, isNew: !hasExistingMetadata };
     };
     return {
-        getIssueComments,
         findCommentById,
         createComment,
         updateComment,

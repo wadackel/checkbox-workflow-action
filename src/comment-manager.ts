@@ -3,7 +3,6 @@ import type { GitHubComment, GitHubIssue, GitHubIssueWithTimestamp } from './sch
 import { htmlCommentUtils } from './html-comments.js'
 
 export type CommentManager = {
-  getIssueComments: (issueNumber: number) => Promise<GitHubComment[]>
   findCommentById: (issueNumber: number, actionId: string) => Promise<GitHubComment | null>
   createComment: (issueNumber: number, body: string) => Promise<GitHubComment>
   updateComment: (commentId: number, body: string) => Promise<GitHubComment>
@@ -28,30 +27,28 @@ export const createCommentManager = (token: string): CommentManager => {
   const repo = github.context.repo.repo
 
   /**
-   * Get existing comments for Issue/PR
-   */
-  const getIssueComments: CommentManager['getIssueComments'] = async (issueNumber) => {
-    const { data } = await octokit.rest.issues.listComments({
-      owner,
-      repo,
-      issue_number: issueNumber,
-    })
-
-    return data as GitHubComment[]
-  }
-
-  /**
    * Search for comment with specified ID
    */
   const findCommentById: CommentManager['findCommentById'] = async (issueNumber, actionId) => {
-    const comments = await getIssueComments(issueNumber)
+    // Use iterator for early termination when comment is found
+    for await (const response of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+      owner,
+      repo,
+      issue_number: issueNumber,
+      per_page: 100,
+    })) {
+      const targetComment = response.data.find((comment) => {
+        return (
+          comment.body && htmlCommentUtils.extractStateMetadata(comment.body, actionId) !== null
+        )
+      })
 
-    // Search for comment with matching ID from metadata
-    const targetComment = comments.find((comment) => {
-      return htmlCommentUtils.extractStateMetadata(comment.body, actionId) !== null
-    })
+      if (targetComment) {
+        return targetComment as GitHubComment
+      }
+    }
 
-    return targetComment ?? null
+    return null
   }
 
   /**
@@ -160,7 +157,6 @@ export const createCommentManager = (token: string): CommentManager => {
   }
 
   return {
-    getIssueComments,
     findCommentById,
     createComment,
     updateComment,
