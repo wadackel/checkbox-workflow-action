@@ -155,7 +155,7 @@ jobs:
 
       - name: Close completed E2E issue
         if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             await github.rest.issues.update({
@@ -513,7 +513,7 @@ jobs:
 
       - name: Display state retrieval results
         if: ${{ steps.state-check.outputs.retrieved == 'true' }}
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const checkedState = JSON.parse('${{ steps.state-check.outputs.state }}');
@@ -599,7 +599,7 @@ jobs:
       - name: Handle workflow failures
         id: handle-workflow-failures
         if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const basicStatus = '${{ needs.basic-workflow-test.result }}';
