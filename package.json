@@ -62,7 +62,7 @@
     "@tsconfig/node20": "20.1.6",
     "@tsconfig/strictest": "2.0.6",
     "@types/node": "24.5.2",
-    "@vercel/ncc": "0.38.3",
+    "@vercel/ncc": "0.38.4",
     "conventional-changelog-conventionalcommits": "9.1.0",
     "gha-docgen": "1.0.1",
     "lint-staged": "16.2.1",
