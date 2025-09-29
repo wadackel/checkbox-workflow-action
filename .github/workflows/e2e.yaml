@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Create e2e checklist
         id: e2e-tasks
@@ -57,7 +57,7 @@ jobs:
       number: ${{ github.event.issue.number }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Check task status
         id: e2e-tasks
@@ -155,7 +155,7 @@ jobs:
 
       - name: Close completed E2E issue
         if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             await github.rest.issues.update({
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Create basic checklist
         if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
@@ -273,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Get workflow files
         id: workflow-files
@@ -408,7 +408,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: issue-${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}-workflows-${{ steps.create-artifact.outputs.timestamp }}
           path: selected-files/
@@ -481,7 +481,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Create demo checklist
         if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
@@ -513,7 +513,7 @@ jobs:
 
       - name: Display state retrieval results
         if: ${{ steps.state-check.outputs.retrieved == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const checkedState = JSON.parse('${{ steps.state-check.outputs.state }}');
@@ -599,7 +599,7 @@ jobs:
       - name: Handle workflow failures
         id: handle-workflow-failures
         if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const basicStatus = '${{ needs.basic-workflow-test.result }}';
