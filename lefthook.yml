@@ -1,0 +1,22 @@
+pre-commit:
+  parallel: false
+  commands:
+    build:
+      run: pnpm build
+
+    add-dist:
+      run: git add dist/
+
+    oxlint:
+      glob: "src/**/*.{js,ts}"
+      run: pnpm exec oxlint {staged_files}
+
+    prettier:
+      glob: "**/*.{js,ts,md,yaml,yml,json}"
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit $1
