@@ -1,0 +1,72 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+
+  // Base configuration inheritance
+  // - config:js-lib: Recommended settings for JavaScript/TypeScript libraries
+  // - group:commitlintMonorepo: Groups commitlint-related packages
+  // - :semanticCommits: Use semantic commit message format
+  // - :semanticCommitTypeAll(chore): Classify all updates as "chore" type
+  // - :semanticCommitScopeDisabled: Disable scope in commit messages
+  extends: [
+    'config:js-lib',
+    'group:commitlintMonorepo',
+    ':semanticCommits',
+    ':semanticCommitTypeAll(chore)',
+    ':semanticCommitScopeDisabled',
+  ],
+
+  // PR configuration
+  labels: ['A-dependencies'], // Label for dependency update PRs
+  rebaseLabel: 'S-needs-rebase', // Label for PRs that need rebasing
+  prConcurrentLimit: 0, // No limit on concurrent PRs
+
+  // Major/Minor/Patch separation settings
+  separateMajorMinor: true, // Separate major updates into individual PRs
+  separateMinorPatch: false, // Keep minor/patch updates together
+
+  // Stability Days (unified to 7 days)
+  // Consistent waiting period after new version releases for stability
+  stabilityDays: 7,
+
+  // Package rules (grouping strategy)
+  packageRules: [
+    // 1. Group semantic-release related packages
+    // Keep release tooling synchronized for consistency
+    {
+      groupName: 'semantic-release packages',
+      matchPackageNames: ['semantic-release', 'semantic-release-major-tag'],
+      matchPackagePatterns: ['^@semantic-release/'],
+    },
+
+    // 2. Group TypeScript configuration packages
+    // Maintain consistency in TypeScript configuration
+    {
+      groupName: 'tsconfig packages',
+      matchPackagePatterns: ['^@tsconfig/'],
+    },
+
+    // 3. Production dependencies - patch & minor updates
+    // Used in GitHub Actions runtime, requires manual merge
+    {
+      groupName: 'dependencies (non-major)',
+      matchDepTypes: ['dependencies'],
+      matchUpdateTypes: ['patch', 'minor'],
+    },
+
+    // 4. Development dependencies - patch & minor updates
+    // Development-only packages, auto-merge when tests pass
+    {
+      groupName: 'devDependencies (non-major)',
+      matchDepTypes: ['devDependencies'],
+      matchUpdateTypes: ['patch', 'minor'],
+      automerge: true,
+    },
+
+    // 5. Major updates - individual PRs with approval
+    // Potential breaking changes require careful individual review
+    {
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+    },
+  ],
+}
