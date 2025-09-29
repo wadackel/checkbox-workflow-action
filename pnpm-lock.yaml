@@ -52,7 +52,7 @@ importers:
         specifier: 1.0.1
         version: 1.0.1
       lefthook:
-        specifier: ^1.13.2
+        specifier: 1.13.2
         version: 1.13.2
       oxlint:
         specifier: 1.16.0
