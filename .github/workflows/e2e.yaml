@@ -21,11 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0
 
       - name: Create e2e checklist
         id: e2e-tasks
-        uses: ./
+        uses: $/
         with:
           id: e2e-checklist
           number: ${{ github.event.issue.number }}
@@ -57,11 +57,11 @@ jobs:
       number: ${{ github.event.issue.number }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0
 
       - name: Check task status
         id: e2e-tasks
-        uses: ./
+        uses: $/
         with:
           id: e2e-checklist
           number: ${{ github.event.issue.number }}
@@ -75,7 +75,7 @@ jobs:
 
       - name: Issue Body Management Test - Post Initial Message
         if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'issue-body-test') && fromJSON(steps.e2e-tasks.outputs.state).issue-body-test }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ github.event.issue.number }}
           title: 'E2E Tests Started'
@@ -97,7 +97,7 @@ jobs:
 
       - name: Basic Workflow Test
         if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'basic-workflow') && fromJSON(steps.e2e-tasks.outputs.state).basic-workflow }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ github.event.issue.number }}
           title: 'Basic Workflow Test Completed'
@@ -109,7 +109,7 @@ jobs:
 
       - name: Dynamic Workflow Test
         if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'dynamic-workflow') && fromJSON(steps.e2e-tasks.outputs.state).dynamic-workflow }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ github.event.issue.number }}
           title: 'Dynamic Workflow Test Completed'
@@ -121,7 +121,7 @@ jobs:
 
       - name: State Retrieval Test
         if: ${{ steps.e2e-tasks.outputs.changed == 'true' && contains(fromJSON(steps.e2e-tasks.outputs.changes), 'state-retrieval') && fromJSON(steps.e2e-tasks.outputs.state).state-retrieval }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ github.event.issue.number }}
           title: 'State Retrieval and Cross-Workflow Integration Test Completed'
@@ -133,7 +133,7 @@ jobs:
 
       - name: Complete E2E Test Suite
         if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ github.event.issue.number }}
           title: 'E2E Test Suite Completed Successfully!'
@@ -155,7 +155,7 @@ jobs:
 
       - name: Close completed E2E issue
         if: ${{ steps.e2e-tasks.outputs.all-checked == 'true' }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@v8.0.0
         with:
           script: |
             await github.rest.issues.update({
@@ -183,11 +183,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0
 
       - name: Create basic checklist
         if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
-        uses: ./
+        uses: $/
         with:
           id: basic-tasks
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -207,7 +207,7 @@ jobs:
             ]
 
       - name: Check tasks status
-        uses: ./
+        uses: $/
         id: tasks
         with:
           id: basic-tasks
@@ -215,7 +215,7 @@ jobs:
 
       - name: Greet Task
         if: ${{ steps.tasks.outputs.retrieved == 'true' && steps.tasks.outputs.changed == 'true' && contains(fromJSON(steps.tasks.outputs.changes), 'greet') && fromJSON(steps.tasks.outputs.state).greet }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'Basic Workflow - Greet Task Executed'
@@ -238,7 +238,7 @@ jobs:
       # Clear checkboxes when all tasks are completed
       - name: Clear completed checklist
         if: ${{ steps.tasks.outputs.all-checked == 'true' }}
-        uses: ./
+        uses: $/
         with:
           id: basic-tasks
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -273,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0
 
       - name: Get workflow files
         id: workflow-files
@@ -330,7 +330,7 @@ jobs:
 
       - name: Create/Update file checklist
         if: steps.workflow-files.outputs.has-files == 'true' && needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
-        uses: ./
+        uses: $/
         with:
           id: workflow-file-selector
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -349,7 +349,7 @@ jobs:
 
       - name: Check file selection status
         id: file-status
-        uses: ./
+        uses: $/
         with:
           id: workflow-file-selector
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -408,7 +408,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: issue-${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}-workflows-${{ steps.create-artifact.outputs.timestamp }}
           path: selected-files/
@@ -417,7 +417,7 @@ jobs:
 
       - name: Post completion comment - No files selected
         if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'false' }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'No Files Selected'
@@ -427,7 +427,7 @@ jobs:
 
       - name: Post completion comment - Artifact created
         if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'Artifact Created Successfully!'
@@ -446,7 +446,7 @@ jobs:
 
       - name: Clear checkboxes after processing
         if: ${{ steps.file-status.outputs.retrieved == 'true' && steps.file-status.outputs.changed == 'true' && fromJSON(steps.file-status.outputs.state).download && steps.create-artifact.outputs.has-selected-files == 'true' }}
-        uses: ./
+        uses: $/
         with:
           id: workflow-file-selector
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -481,11 +481,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0
 
       - name: Create demo checklist
         if: needs.execute-e2e-tasks.outputs.should-run-e2e == 'true'
-        uses: ./
+        uses: $/
         with:
           id: state-demo-tasks
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -506,14 +506,14 @@ jobs:
 
       - name: Retrieve checkbox state (Detection Mode)
         id: state-check
-        uses: ./
+        uses: $/
         with:
           id: state-demo-tasks
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
 
       - name: Display state retrieval results
         if: ${{ steps.state-check.outputs.retrieved == 'true' }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@v8.0.0
         with:
           script: |
             const checkedState = JSON.parse('${{ steps.state-check.outputs.state }}');
@@ -546,7 +546,7 @@ jobs:
 
       - name: Demo Task A State Detection
         if: ${{ steps.state-check.outputs.retrieved == 'true' && steps.state-check.outputs.changed == 'true' && contains(fromJSON(steps.state-check.outputs.changes), 'demo-task-a') && fromJSON(steps.state-check.outputs.state).demo-task-a }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'State Retrieval Demo - Task A Detected'
@@ -569,7 +569,7 @@ jobs:
 
       - name: All Tasks Completion Detection
         if: ${{ steps.state-check.outputs.all-checked == 'true' }}
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'State Retrieval Demo - All Tasks Complete'
@@ -585,7 +585,7 @@ jobs:
 
       - name: Check final state
         id: final-state
-        uses: ./
+        uses: $/
         with:
           id: state-demo-tasks
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
@@ -599,7 +599,7 @@ jobs:
       - name: Handle workflow failures
         id: handle-workflow-failures
         if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@v8.0.0
         with:
           script: |
             const basicStatus = '${{ needs.basic-workflow-test.result }}';
@@ -633,7 +633,7 @@ jobs:
 
       - name: Post workflow failure notification
         if: needs.basic-workflow-test.result == 'failure' || needs.dynamic-workflow-test.result == 'failure' || needs.state-retrieval-test.result == 'failure'
-        uses: ./.github/actions/post-comment
+        uses: $/.github/actions/post-comment
         with:
           number: ${{ needs.execute-e2e-tasks.outputs.number || github.event.issue.number }}
           title: 'E2E Workflow Failures Detected'

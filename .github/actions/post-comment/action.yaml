@@ -29,7 +29,7 @@ runs:
       run: echo "value=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
 
     - name: Post comment
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      uses: actions/github-script@v8.0.0
       env:
         COMMENT_TITLE: ${{ inputs.title }}
         COMMENT_CONTENT: ${{ inputs.content }}
